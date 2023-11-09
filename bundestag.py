@@ -31,48 +31,67 @@ for _ in range(15):  # You may need to adjust the number of scrolls to load all 
 
 # Locate and extract member information
 members = driver.find_elements(By.CSS_SELECTOR, 'h3')  # Select h3 elements containing member names
-#print(members)
 
-for member in members:
-    time.sleep(2)
+# Create a file to save the links
+with open('./Bundestag/links.txt', 'w') as link_file:
+    for member in members:
+        link = member.find_element(By.XPATH, './ancestor::a').get_attribute('href')
+        link_file.write(link + '\n')
 
-    link = member.find_element(By.XPATH, './ancestor::a').get_attribute('href')
-    print(link)
-    driver.get(link)
+# Close the browser
+driver.quit()
+import pandas as pd
+
+# Read the link file into a DataFrame
+df = pd.read_csv('./Bundestag/link_addresses.txt', names=['Link'])
+
+# Remove duplicates
+df = df.drop_duplicates()
+
+# Save the cleaned link file
+df.to_csv('./Bundestag/unique_link_addresses.txt', index=False, header=False)
 
 
-    try:
-        # Extract the name
-        name_element = driver.find_element(By.CSS_SELECTOR, '.bt-biografie-name h3')
-        name = name_element.text.strip()
-        print("Name:", name)
-    
-        # Locate the div containing social media links
-        div_element = driver.find_element(By.XPATH, '//div[h5[text()="Profile im Internet"]]')
 
-        # Find all the li elements within the div
-        li_elements = div_element.find_elements(By.CSS_SELECTOR, 'ul.bt-linkliste li')
+# Now, you can read the links from 'links.txt' and process them one by one.
+with open('./Bundestag/unique_link_addresses.txt', 'r') as link_file:
+    for link in link_file:
+        time.sleep(2)
+        link = link.strip()
+        driver = webdriver.Chrome()
+        driver.get(link)
 
-        # Extract social media links and titles
-        social_media_links = []
-        for li_element in li_elements:
-            a_element = li_element.find_element(By.CSS_SELECTOR, 'a')
-            title = a_element.get_attribute('title')
-            link = a_element.get_attribute('href')
-            social_media_links.append((title, link))
-            print(f"{title}: {link}")
+        try:
+            # Extract the name
+            name_element = driver.find_element(By.CSS_SELECTOR, '.bt-biografie-name h3')
+            name = name_element.text.strip()
+            print("Name:", name)
+        
+            # Locate the div containing social media links
+            div_element = driver.find_element(By.XPATH, '//div[h5[text()="Profile im Internet"]]')
 
-    
+            # Find all the li elements within the div
+            li_elements = div_element.find_elements(By.CSS_SELECTOR, 'ul.bt-linkliste li')
 
-        # Extract email contact link
-        email_element = driver.find_element(By.CSS_SELECTOR, 'span a[title="Kontakt"]')
-        email_link = email_element.get_attribute('href')
-        email_list.append(email_link)
-        print("Email Contact Link:", email_link)
+            # Extract social media links and titles
+            social_media_links = []
+            for li_element in li_elements:
+                a_element = li_element.find_element(By.CSS_SELECTOR, 'a')
+                title = a_element.get_attribute('title')
+                link = a_element.get_attribute('href')
+                social_media_links.append((title, link))
+                print(f"{title}: {link}")
 
-    except StaleElementReferenceException:
-        print("Element became stale. Retrying...")
-        continue
+
+            # Extract email contact link
+            email_element = driver.find_element(By.CSS_SELECTOR, 'span a[title="Kontakt"]')
+            email_link = email_element.get_attribute('href')
+            email_list.append(email_link)
+            print("Email Contact Link:", email_link)
+
+        except StaleElementReferenceException:
+            print("Element became stale. Retrying...")
+            continue
 
 # Close the browser
 driver.quit()
